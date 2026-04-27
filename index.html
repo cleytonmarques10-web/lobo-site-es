@@ -1786,6 +1786,7 @@ const SYSTEM = "Eres el Lobo de los Talleres, un mecánico experto con más de 3
 const ORC_SYSTEM = "Eres el Analizador de Presupuestos del Lobo de los Talleres. Analiza presupuestos de talleres mecánicos en América Latina. Responde SIEMPRE en español.\n\nRetorna SOLO un JSON válido, sin texto extra:\n{\"veredicto\":\"SOSPECHOSO\"|\"ATENCIÓN\"|\"JUSTO\",\"puntuacion\":0-100,\"resumen\":\"frase corta\",\"items\":[{\"tipo\":\"danger\"|\"warn\"|\"ok\",\"titulo\":\"nombre del item\",\"analisis\":\"explicación simple\"}],\"ahorro_posible\":\"ej: $50\",\"consejo_final\":\"consejo práctico\"}\nRetorna SOLO el JSON.";
 
 let qLeft=5, sending=false, orcLoading=false, currentCar=0;
+var ADMIN_EMAIL = 'cleytonmarques10@gmail.com';
 let recognition=null, isRecording=false;
 let perfilData = JSON.parse(localStorage.getItem('lobo_perfil')||'{}');
 const chatHist = JSON.parse(localStorage.getItem('lobo_chat_hist') || '[]');
@@ -2290,17 +2291,7 @@ function calcFuel(){
   const l=km/cons; res.textContent='$ '+(l*price).toFixed(2);
   tip.textContent=`Você vai usar cerca de ${l.toFixed(1)} litros.`;
 }
-function calcEth(){
-  const gas=parseFloat(document.getElementById('egas').value);
-  const eth=parseFloat(document.getElementById('eeth').value);
-  const res=document.getElementById('eresult');
-  const lbl=document.getElementById('elabel');
-  const tip=document.getElementById('etip');
-  if(!gas||!eth){res.textContent='—';lbl.textContent='Informe os preços acima';tip.textContent='';return;}
-  const r=eth/gas;
-  if(r<=0.7){res.textContent='✅ Use etanol!';res.style.color='var(--green)';lbl.textContent=`Razão: ${(r*100).toFixed(0)}% — compensa usar etanol`;tip.textContent='Gas Natural está barato! Vale a pena.';}
-  else{res.textContent='⛽ Use gasolina';res.style.color='var(--red)';lbl.textContent=`Razão: ${(r*100).toFixed(0)}% — gasolina compensa mais`;tip.textContent='O etanol está caro agora. Prefira gasolina.';}
-}
+// calcEth removido - não usado na versão espanhol
 function openFuelModal(){abrirModal('modal-fuel');}
 function salvarFuel(){
   const city=document.getElementById('fc-city').value.trim();
@@ -2657,7 +2648,7 @@ function toast(msg, dur=2000){
 }
 
 /* ── INIT ── */
-renderCarPills(); renderAlerts(); renderHist(); renderFuel(); calcFuel(); calcEth();
+renderCarPills(); renderAlerts(); renderHist(); renderFuel(); calcFuel();
 loadMarcas();
 
 setTimeout(()=>{
@@ -2675,7 +2666,7 @@ window.addEventListener('beforeinstallprompt',e=>{
 });
 
 /* ══ PERFIL ══ */
-const ADMIN_EMAIL = 'cleytonmarques10@gmail.com';
+// Admin email definido no início do arquivo
 
 // Admin users carregados do Supabase
 let adminUsers = [];
@@ -2790,25 +2781,43 @@ function atualizarPerfilUI(){
 }
 
 function verificarContaAdmin(email){
-  // Verificar também pelo localStorage direto
-  if(!email){
-    const user = JSON.parse(localStorage.getItem('lobo_user')||'{}');
-    email = user.email || '';
+  // Pega email de todas as fontes possíveis
+  if(!email || email === ''){
+    const u1 = JSON.parse(localStorage.getItem('lobo_user')||'{}');
+    const u2 = JSON.parse(localStorage.getItem('lobo_perfil')||'{}');
+    email = u1.email || u2.email || '';
   }
-  if(email && email.toLowerCase() === ADMIN_EMAIL.toLowerCase()){
+  if(!email) return;
+  
+  console.log('Verificando admin para:', email, '| Admin esperado:', ADMIN_EMAIL);
+  
+  if(email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim()){
+    console.log('✅ Admin confirmado!');
+    // Mostrar botão admin
     const adminBtn = document.getElementById('admin-btn-wrap');
     if(adminBtn) adminBtn.style.display = 'block';
+    // Atualizar plano
     const planoNome = document.getElementById('plano-nome-perfil');
-    if(planoNome) planoNome.textContent = 'Plan Pro — Admin';
+    if(planoNome) planoNome.textContent = 'Plan Pro — Admin 🛡️';
     const planoStatus = document.getElementById('plano-status-perfil');
     if(planoStatus) planoStatus.textContent = 'Acceso completo e ilimitado ✅';
     const planoEmoji = document.getElementById('plano-emoji');
     if(planoEmoji) planoEmoji.textContent = '🛡️';
+    // Liberar perguntas ilimitadas
     qLeft = 999;
     const ci = document.getElementById('chat-info');
-    if(ci) ci.innerHTML = '✅ Cuenta Pro';
+    if(ci) ci.innerHTML = '✅ Cuenta Pro — Admin';
   }
 }
+
+// Verificar admin em múltiplos momentos
+function checkAdminRepeat(){
+  const u = JSON.parse(localStorage.getItem('lobo_user')||'{}');
+  if(u.email) verificarContaAdmin(u.email);
+}
+setTimeout(checkAdminRepeat, 500);
+setTimeout(checkAdminRepeat, 1500);
+setTimeout(checkAdminRepeat, 3000);
 
 async function verificarAssinatura(email){
   try {
